@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: uvx ruff format .
+        language: system
+        pass_filenames: false
+      - id: ruff-check
+        name: ruff check
+        entry: uvx ruff check .
+        language: system
+        pass_filenames: false
+      - id: pyright
+        name: pyright
+        entry: uvx --with pytest pyright
+        language: system
+        pass_filenames: false
+      - id: pytest
+        name: pytest
+        entry: uvx --with pytest-cov --with-editable . pytest --cov=rtf --cov-fail-under=100
+        language: system
+        pass_filenames: false
