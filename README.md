@@ -1,18 +1,63 @@
-PythonRTF
-=========
+# PythonRTF
 
 A concise module for converting simple RTF documents to plain text.
 
-The "to_plain_text" function takes in the file name of an RTF document, and returns the plain text equivalent of the file's contents. It handles only simple RTF documents, ignoring tables, bulleted lists, etc. It does not validate input. Sample usage:
+## Table of Contents
+- [Installation](#installation)
+- [Usage](#usage)
+- [Development](#development)
+  - [Running tests](#running-tests)
+  - [Linting and type checks](#linting-and-type-checks)
+  - [Pre-commit](#pre-commit)
+- [License](#license)
 
-    from rtf import to_plain_text
-    
-    print RTF.to_plain_text("filename.rtf")
+## Installation
+PythonRTF requires Python 3.10 or newer and uses [uv](https://github.com/astral-sh/uv) for dependency management. Ensure `uv` is installed:
 
-The "RTF" class is built around this function, providing additional functionality. It's primary value add is intelligent caching; an "RTF" instance will store the plain text interpretation of its underlying RTF file and only parse it again once it has been marked as having been edited since the instance last parsed it. Sample usage:
+```bash
+pip install uv
+```
 
-    from rtf import RTF
-    
-    r = RTF("input_filename.rtf")
-    print r.plain_text()
-    r.dump("output_filename.txt")
+## Usage
+Convert an RTF file to plain text:
+
+```python
+from rtf import RTF
+
+print(RTF.to_plain_text("filename.rtf"))
+```
+
+The `RTF` class caches the plain text interpretation of the file and only reparses when the file changes:
+
+```python
+from rtf import RTF
+
+r = RTF("input.rtf")
+print(r.plain_text())
+r.dump("output.txt")
+```
+
+## Development
+All development tasks rely on `uv` to provide the required tools.
+
+### Running tests
+```bash
+uvx --with pytest-cov --with-editable . pytest --cov=rtf --cov-report=term-missing
+```
+
+### Linting and type checks
+```bash
+uvx ruff format .
+uvx ruff check .
+uvx --with pytest pyright
+```
+
+### Pre-commit
+Run all formatting, linting, type checking, and tests:
+
+```bash
+uvx pre-commit run --all-files
+```
+
+## License
+This project is licensed under the terms of the [MIT License](LICENSE).

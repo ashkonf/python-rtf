@@ -1,0 +1,20 @@
+[project]
+name = "python-rtf"
+version = "0.1.0"
+description = "A concise module for converting simple RTF documents to plain text."
+authors = [{name = "Unknown"}]
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "pyright",
+]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+
