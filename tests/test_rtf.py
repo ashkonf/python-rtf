@@ -43,6 +43,25 @@ def test_dump(tmp_path: Path) -> None:
     assert output.read_text(encoding="latin-1") == "Data"
 
 
+def test_dump_write_mode(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    file_path = tmp_path / "sample.rtf"
+    write_rtf(file_path, "Mode")
+    output = tmp_path / "out.txt"
+    rtf_obj = RTF(str(file_path))
+
+    original_open = open
+    modes: list[str] = []
+
+    def fake_open(path, mode="r", *args, **kwargs):
+        if path == str(output):
+            modes.append(mode)
+        return original_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", fake_open)
+    rtf_obj.dump(str(output))
+    assert modes == ["w"]
+
+
 def test_dump_failure(tmp_path: Path) -> None:
     file_path = tmp_path / "sample.rtf"
     write_rtf(file_path, "Data")
@@ -67,6 +86,13 @@ def test_main_dump(tmp_path: Path) -> None:
     sys.argv = ["rtf.py", str(file_path), str(output)]
     main()
     assert output.read_text(encoding="latin-1") == "Dump"
+
+
+def test_main_usage_message(capsys: CaptureFixture[str]) -> None:
+    sys.argv = ["rtf.py"]
+    main()
+    captured = capsys.readouterr()
+    assert captured.out == "Usage: rtf.py <input_file> [output_file]\n"
 
 
 def test_escaped_sequences(tmp_path: Path) -> None:
