@@ -1,6 +1,9 @@
 # python-rtf
 
-A concise module for converting simple RTF documents to plain text.
+A concise module for converting simple RTF documents to plain text. Supports
+common control words (e.g., `\par`, `\line`, `\tab`, `\emdash`, `\endash`,
+`\~`), hexadecimal and Unicode escapes, and validates RTF brace structure and
+malformed escape sequences.
 
 ## Table of Contents
 - [Installation](#installation)
