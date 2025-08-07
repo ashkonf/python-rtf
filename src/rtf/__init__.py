@@ -147,13 +147,18 @@ class RTF:
 
     def plain_text(self) -> str:
         last_update_time: str = self.last_update_time()
+        # Refresh the cache when the source file has been updated or when
+        # plain text has not yet been generated. Relying on an ``assert`` to
+        # guarantee the cache exists could lead to returning ``None`` when
+        # Python is run with optimization flags that skip assertions. Instead
+        # perform an explicit check and lazily populate the cache as needed.
         if (
-            self.__last_cache_update_time is None
+            self.__cached_plain_text is None
+            or self.__last_cache_update_time is None
             or self.__last_cache_update_time != last_update_time
         ):
             self.__cached_plain_text = self.to_plain_text(self.file_name)
             self.__last_cache_update_time = last_update_time
-        assert self.__cached_plain_text is not None
         return self.__cached_plain_text
 
     def last_update_time(self) -> str:
@@ -161,7 +166,7 @@ class RTF:
 
     def dump(self, file_name: str) -> bool:
         try:
-            with open(file_name, "w+", encoding="latin-1") as file:
+            with open(file_name, "w", encoding="latin-1") as file:
                 file.write(self.plain_text())
             return True
         except OSError:
@@ -173,6 +178,8 @@ def main() -> None:
         print(RTF(sys.argv[1]).plain_text())
     elif len(sys.argv) == 3:
         RTF(sys.argv[1]).dump(sys.argv[2])
+    else:
+        print(f"Usage: {sys.argv[0]} <input_file> [output_file]")
 
 
 if __name__ == "__main__":
