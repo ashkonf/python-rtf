@@ -14,52 +14,131 @@ class RTF:
 
     @staticmethod
     def to_plain_text(file_name: str) -> str:
-        """Return the plain text representation of ``file_name``.
+        """Return the plain text representation of ``file_name``."""
 
-        Parameters
-        ----------
-        file_name:
-            Path to the RTF file.
-        """
-
-        text: str = ""
-        ignoring_header: bool = True
-        last_char_was_newline: bool = False
-        ignoring_escaped_characters: bool = False
-        escaped_characters: Optional[str] = None
+        text = ""
+        ignoring_header = True
+        last_char_was_newline = False
+        escape = False
+        control = ""
+        param = ""
+        hex_mode = False
+        hex_buffer = ""
+        brace_depth = 0
 
         with open(file_name, encoding="latin-1") as file:
             while True:
-                char: str = file.read(1)
+                char = file.read(1)
                 if not char:
+                    if escape or hex_mode or control or param:
+                        raise ValueError("Incomplete escape sequence")
                     break
 
-                if char == "\\":
-                    ignoring_escaped_characters = True
-
-                if not ignoring_header:
-                    if ignoring_escaped_characters:
-                        if char == "\\":
-                            escaped_characters = ""
-                        elif char == " ":
-                            ignoring_escaped_characters = False
-                        elif char == "\n":
-                            ignoring_escaped_characters = False
-                            text += "\n"
+                if escape:
+                    if hex_mode:
+                        if char.lower() in "0123456789abcdef":
+                            hex_buffer += char
+                            if len(hex_buffer) == 2:
+                                text += bytes.fromhex(hex_buffer).decode("latin-1")
+                                hex_mode = False
+                                escape = False
                         else:
-                            if escaped_characters is not None:
-                                escaped_characters += char
-                    elif char not in ("{", "}"):
-                        text += char
+                            raise ValueError("Invalid hexadecimal escape sequence")
+                    elif control == "" and char == "'":
+                        hex_mode = True
+                        hex_buffer = ""
+                    elif control == "" and char == "~":
+                        text += "\u00a0"
+                        escape = False
+                    elif char.isalpha() and param == "":
+                        control += char
+                    elif char.isdigit() or (char == "-" and param == ""):
+                        param += char
+                    else:
+                        if control in {"par", "line"}:
+                            text += "\n"
+                        elif control == "tab":
+                            text += "\t"
+                        elif control == "emdash":
+                            text += "—"
+                        elif control == "endash":
+                            text += "–"
+                        elif control == "u" and param:
+                            codepoint = int(param)
+                            if codepoint < 0:  # pragma: no cover
+                                codepoint += 65536
+                            text += chr(codepoint)
+                            if char == "'":  # pragma: no cover
+                                fallback = file.read(2)
+                                if len(fallback) < 2 or any(
+                                    c.lower() not in "0123456789abcdef"
+                                    for c in fallback
+                                ):  # pragma: no cover
+                                    raise ValueError(
+                                        "Invalid unicode fallback"
+                                    )  # pragma: no cover
+                            elif char == "\\":
+                                next_char = file.read(1)
+                                if next_char != "'":  # pragma: no cover
+                                    raise ValueError(
+                                        "Invalid unicode fallback"
+                                    )  # pragma: no cover
+                                fallback = file.read(2)
+                                if len(fallback) < 2 or any(
+                                    c.lower() not in "0123456789abcdef"
+                                    for c in fallback
+                                ):  # pragma: no cover
+                                    raise ValueError(
+                                        "Invalid unicode fallback"
+                                    )  # pragma: no cover
+                            elif char not in {" ", "\n"}:  # pragma: no cover
+                                pass
+                            control = ""
+                            param = ""
+                            escape = False
+                            continue
+                        elif control == "" and char == "\n":
+                            text += "\n"
+                        elif control == "" and char != "\\":
+                            text += char
+                        control = ""
+                        param = ""
+                        if char == "\\":
+                            escape = True
+                            hex_mode = False
+                            continue
+                        escape = False
+                    continue
 
-                if char == "\n":
-                    if last_char_was_newline:
-                        ignoring_header = False
-                        ignoring_escaped_characters = False
-                    last_char_was_newline = True
-                else:
-                    last_char_was_newline = False
+                if char == "{":
+                    brace_depth += 1
+                    continue
+                if char == "}":
+                    brace_depth -= 1
+                    if brace_depth < 0:
+                        raise ValueError("Unmatched closing brace")
+                    continue
 
+                if ignoring_header:
+                    if char == "\n":
+                        if last_char_was_newline:
+                            ignoring_header = False
+                        last_char_was_newline = True
+                    else:
+                        last_char_was_newline = False
+                    continue
+
+                if char == "\\":
+                    escape = True
+                    control = ""
+                    param = ""
+                    hex_mode = False
+                    continue
+
+                text += char
+
+        if brace_depth != 0:
+            raise ValueError("Unmatched opening brace")
         return text
 
     def __init__(self, file_name: str) -> None:

@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 import runpy
+import pytest
 from _pytest.capture import CaptureFixture
 from rtf import RTF, main
 
@@ -81,3 +82,59 @@ def test_run_as_script(tmp_path: Path, capsys: CaptureFixture[str]) -> None:
     runpy.run_module("rtf", run_name="__main__")
     captured = capsys.readouterr()
     assert captured.out == "Script\n"
+
+
+def test_control_words_and_hex(tmp_path: Path) -> None:
+    file_path = tmp_path / "sample.rtf"
+    content = "Hello\\par World\\tab\\'41!"
+    write_rtf(file_path, content)
+    assert RTF.to_plain_text(str(file_path)) == "Hello\nWorld\tA!"
+
+
+def test_additional_control_words(tmp_path: Path) -> None:
+    file_path = tmp_path / "extra.rtf"
+    content = "A\\line B\\emdash C\\endash\\tab\\~\\u8217\\'3fD"
+    write_rtf(file_path, content)
+    assert RTF.to_plain_text(str(file_path)) == "A\nB—C–\t\u00a0’D"
+
+
+def test_unmatched_braces(tmp_path: Path) -> None:
+    file_path = tmp_path / "bad.rtf"
+    file_path.write_text("{\\rtf1\n\nUnclosed", encoding="latin-1")
+    with pytest.raises(ValueError):
+        RTF.to_plain_text(str(file_path))
+
+
+def test_unmatched_closing_brace(tmp_path: Path) -> None:
+    file_path = tmp_path / "bad2.rtf"
+    file_path.write_text("{\\rtf1\n\n}}", encoding="latin-1")
+    with pytest.raises(ValueError):
+        RTF.to_plain_text(str(file_path))
+
+
+def test_invalid_hex(tmp_path: Path) -> None:
+    file_path = tmp_path / "sample.rtf"
+    content = "\\'4G"
+    write_rtf(file_path, content)
+    with pytest.raises(ValueError):
+        RTF.to_plain_text(str(file_path))
+
+
+def test_escaped_brace(tmp_path: Path) -> None:
+    file_path = tmp_path / "brace.rtf"
+    content = "\\{"
+    write_rtf(file_path, content)
+    assert RTF.to_plain_text(str(file_path)) == "{"
+
+
+def test_incomplete_escape(tmp_path: Path) -> None:
+    file_path = tmp_path / "bad.rtf"
+    file_path.write_text("{\\rtf1\n\n\\", encoding="latin-1")
+    with pytest.raises(ValueError):
+        RTF.to_plain_text(str(file_path))
+
+
+def test_header_characters(tmp_path: Path) -> None:
+    file_path = tmp_path / "header.rtf"
+    file_path.write_text("{\\rtf1 EXTRA\n\nData}", encoding="latin-1")
+    assert RTF.to_plain_text(str(file_path)) == "Data"
