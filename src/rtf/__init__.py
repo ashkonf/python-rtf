@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Simple utilities for converting RTF documents to plain text."""
 
 from __future__ import annotations
@@ -75,13 +74,13 @@ class RTF:
                                     for c in fallback
                                 ):  # pragma: no cover
                                     raise ValueError(
-                                        "Invalid unicode fallback"
+                                        "Invalid unicode fallback",
                                     )  # pragma: no cover
                             elif char == "\\":
                                 next_char = file.read(1)
                                 if next_char != "'":  # pragma: no cover
                                     raise ValueError(
-                                        "Invalid unicode fallback"
+                                        "Invalid unicode fallback",
                                     )  # pragma: no cover
                                 fallback = file.read(2)
                                 if len(fallback) < 2 or any(
@@ -89,7 +88,7 @@ class RTF:
                                     for c in fallback
                                 ):  # pragma: no cover
                                     raise ValueError(
-                                        "Invalid unicode fallback"
+                                        "Invalid unicode fallback",
                                     )  # pragma: no cover
                             elif char not in {" ", "\n"}:  # pragma: no cover
                                 pass
@@ -177,4 +176,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main()  # pragma: no cover
