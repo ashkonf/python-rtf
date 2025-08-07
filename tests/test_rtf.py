@@ -10,7 +10,8 @@ from rtf import RTF, main
 
 
 def write_rtf(path: Path, text: str) -> None:
-    path.write_text("{\\rtf1\n\n" + text + "}", encoding="latin-1")
+    with path.open("w", encoding="latin-1") as file:
+        file.write("{\\rtf1\n\n" + text + "}")
 
 
 def test_to_plain_text(tmp_path: Path) -> None:
